@@ -1,0 +1,107 @@
+diff --git a/GobiUSBNet.c b/GobiUSBNet.c
+index 689c173..ab29767 100644
+--- a/GobiUSBNet.c
++++ b/GobiUSBNet.c
+@@ -1402,8 +1402,13 @@ static void ql_net_get_drvinfo(struct net_device *net, struct ethtool_drvinfo *i
+ {
+ 	usbnet_get_drvinfo(net, info);
+ 	/* Inherit standard device info */
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
++	strscpy(info->driver, driver_name, sizeof(info->driver));
++	strscpy(info->version, VERSION_NUMBER, sizeof(info->version));
++#else
+ 	strlcpy(info->driver, driver_name, sizeof(info->driver));
+ 	strlcpy(info->version, VERSION_NUMBER, sizeof(info->version));
++#endif
+ }
+ 
+ static struct ethtool_ops ql_net_ethtool_ops;
+@@ -1537,11 +1542,13 @@ static int GobiNetDriverBind(
+ 
+ #if 1 //def DATA_MODE_RP
+     /* make MAC addr easily distinguishable from an IP header */
++#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0))
+     if ((pDev->net->dev_addr[0] & 0xd0) == 0x40) {
+         /*clear this bit wil make usbnet apdater named as usbX(instead if ethX)*/
+         pDev->net->dev_addr[0] |= 0x02;	/* set local assignment bit */
+         pDev->net->dev_addr[0] &= 0xbf;	/* clear "IP" bit */
+     }
++#endif
+     memcpy (pDev->net->dev_addr, node_id, sizeof node_id);
+     pDev->net->flags &= ~(IFF_BROADCAST | IFF_MULTICAST);
+     pDev->net->features |= (NETIF_F_VLAN_CHALLENGED);
+@@ -3149,7 +3156,11 @@ RETURN VALUE:
+ ===========================================================================*/
+ static int __init GobiUSBNetModInit( void )
+ {
++#if (LINUX_VERSION_CODE <= KERNEL_VERSION(6, 3, 13))
+    gpClass = class_create( THIS_MODULE, "GobiQMI" );
++#else
++   gpClass = class_create("GobiQMI" );
++#endif
+    if (IS_ERR( gpClass ) == true)
+    {
+       DBG( "error at class_create %ld\n", PTR_ERR( gpClass ) );
+diff --git a/Makefile b/Makefile
+index fe4ccf1..1a68ce6 100644
+--- a/Makefile
++++ b/Makefile
+@@ -1,6 +1,8 @@
+ obj-m := GobiNet.o
+ GobiNet-objs := GobiUSBNet.o QMIDevice.o QMI.o
+ 
++ccflags-y += -Wno-incompatible-pointer-types-discards-qualifiers
++
+ PWD := $(shell pwd)
+ OUTPUTDIR=/lib/modules/`uname -r`/kernel/drivers/net/usb/
+ 
+diff --git a/QMI.c b/QMI.c
+index eaf1cac..01768bb 100644
+--- a/QMI.c
++++ b/QMI.c
+@@ -66,8 +66,12 @@ POSSIBILITY OF SUCH DAMAGE.
+ //---------------------------------------------------------------------------
+ // Include Files
+ //---------------------------------------------------------------------------
+-#include <asm/unaligned.h>
+ #include <linux/kernel.h>
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++#include <linux/unaligned.h>
++#else
++#include <asm/unaligned.h>
++#endif
+ #include "Structs.h"
+ #include "QMI.h"
+ 
+diff --git a/QMI.h b/QMI.h
+index 4508be4..3e50708 100644
+--- a/QMI.h
++++ b/QMI.h
+@@ -124,6 +124,10 @@ extern int quec_debug;
+ 
+ #define TLV_TYPE_LINK_PROTO 0x10
+ 
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 18, 0))
++#define netif_rx_ni(skb) netif_rx(skb)
++#endif
++
+ /*=========================================================================*/
+ // Struct sQMUX
+ //
+diff --git a/QMIDevice.c b/QMIDevice.c
+index fe6b6cf..022150b 100644
+--- a/QMIDevice.c
++++ b/QMIDevice.c
+@@ -90,7 +90,12 @@ POSSIBILITY OF SUCH DAMAGE.
+ //---------------------------------------------------------------------------
+ // Include Files
+ //---------------------------------------------------------------------------
++#include <linux/version.h>
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
++#include <linux/unaligned.h>
++#else
+ #include <asm/unaligned.h>
++#endif
+ #include <linux/module.h>
+ #include <linux/usb/cdc.h>
+ #include <linux/usb.h>

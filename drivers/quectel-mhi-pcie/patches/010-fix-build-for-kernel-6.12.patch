@@ -1,0 +1,48 @@
+--- a/core/mhi_init.c
++++ b/core/mhi_init.c
+@@ -644,7 +644,9 @@ static int mon_text_release(struct inode
+ static const struct file_operations mon_fops_text_u = {
+ 	.owner =	THIS_MODULE,
+ 	.open =		mon_text_open,
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6,12,0)
+ 	.llseek =	no_llseek,
++#endif
+ 	.read =		mon_text_read_u,
+ 	.release =	mon_text_release,
+ };
+@@ -2404,7 +2406,9 @@ static void mhi_release_device(struct de
+ struct bus_type mhi_bus_type = {
+ 	.name = "mhi_q",
+ 	.dev_name = "mhi_q",
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6,12,0)
+ 	.match = mhi_match,
++#endif
+ };
+ 
+ static int mhi_driver_probe(struct device *dev)
+@@ -2691,7 +2695,7 @@ static int __init mhi_cntrl_init(void)
+ 	return 0;
+ }
+ 
+-void mhi_cntrl_exit(void)
++static void mhi_cntrl_exit(void)
+ {
+ 	class_destroy(mhi_cntrl_drv.class);
+ 	unregister_chrdev(mhi_cntrl_drv.major, MHI_CNTRL_DRIVER_NAME);
+--- a/devices/mhi_netdev_quectel.c
++++ b/devices/mhi_netdev_quectel.c
+@@ -2586,9 +2586,13 @@ static const struct net_device_ops mhi_n
+ static void mhi_netdev_get_drvinfo (struct net_device *ndev, struct ethtool_drvinfo *info)
+ {
+ 	//struct mhi_netdev *mhi_netdev = ndev_to_mhi(ndev);
+-
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
++	strscpy (info->driver, "pcie_mhi", sizeof info->driver);
++	strscpy (info->version, PCIE_MHI_DRIVER_VERSION, sizeof info->version);
++#else
+ 	strlcpy (info->driver, "pcie_mhi", sizeof info->driver);
+ 	strlcpy (info->version, PCIE_MHI_DRIVER_VERSION, sizeof info->version);
++#endif
+ }
+ 
+ static const struct ethtool_ops mhi_netdev_ethtool_ops = {

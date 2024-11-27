@@ -1,0 +1,25 @@
+--- a/qmi_wwan_q.c
++++ b/qmi_wwan_q.c
+@@ -1464,7 +1464,7 @@ typedef struct {
+ } BRMAC_SETTING;
+ #endif
+ 
+-int qma_setting_store(struct device *dev, QMAP_SETTING *qmap_settings, size_t size) {
++static int qma_setting_store(struct device *dev, QMAP_SETTING *qmap_settings, size_t size) {
+ 	struct net_device *netdev = to_net_dev(dev);
+ 	struct usbnet * usbnetdev = netdev_priv( netdev );
+ 	struct qmi_wwan_state *info = (void *)&usbnetdev->data;
+@@ -2006,8 +2006,13 @@ static void ql_net_get_drvinfo(struct ne
+ {
+ 	/* Inherit standard device info */
+ 	usbnet_get_drvinfo(net, info);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
++	strscpy(info->driver, driver_name, sizeof(info->driver));
++	strscpy(info->version, VERSION_NUMBER, sizeof(info->version));
++#else
+ 	strlcpy(info->driver, driver_name, sizeof(info->driver));
+ 	strlcpy(info->version, VERSION_NUMBER, sizeof(info->version));
++#endif
+ }
+ 
+ static struct ethtool_ops ql_net_ethtool_ops;

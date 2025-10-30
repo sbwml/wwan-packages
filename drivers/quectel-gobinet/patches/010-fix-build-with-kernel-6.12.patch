@@ -1,8 +1,6 @@
-diff --git a/GobiUSBNet.c b/GobiUSBNet.c
-index 689c173..ab29767 100644
 --- a/GobiUSBNet.c
 +++ b/GobiUSBNet.c
-@@ -1402,8 +1402,13 @@ static void ql_net_get_drvinfo(struct net_device *net, struct ethtool_drvinfo *i
+@@ -1402,8 +1402,13 @@ static void ql_net_get_drvinfo(struct ne
  {
  	usbnet_get_drvinfo(net, info);
  	/* Inherit standard device info */
@@ -42,8 +40,6 @@ index 689c173..ab29767 100644
     if (IS_ERR( gpClass ) == true)
     {
        DBG( "error at class_create %ld\n", PTR_ERR( gpClass ) );
-diff --git a/Makefile b/Makefile
-index fe4ccf1..1a68ce6 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -1,6 +1,8 @@
@@ -55,8 +51,6 @@ index fe4ccf1..1a68ce6 100644
  PWD := $(shell pwd)
  OUTPUTDIR=/lib/modules/`uname -r`/kernel/drivers/net/usb/
  
-diff --git a/QMI.c b/QMI.c
-index eaf1cac..01768bb 100644
 --- a/QMI.c
 +++ b/QMI.c
 @@ -66,8 +66,12 @@ POSSIBILITY OF SUCH DAMAGE.
@@ -73,8 +67,6 @@ index eaf1cac..01768bb 100644
  #include "Structs.h"
  #include "QMI.h"
  
-diff --git a/QMI.h b/QMI.h
-index 4508be4..3e50708 100644
 --- a/QMI.h
 +++ b/QMI.h
 @@ -124,6 +124,10 @@ extern int quec_debug;
@@ -88,8 +80,6 @@ index 4508be4..3e50708 100644
  /*=========================================================================*/
  // Struct sQMUX
  //
-diff --git a/QMIDevice.c b/QMIDevice.c
-index fe6b6cf..022150b 100644
 --- a/QMIDevice.c
 +++ b/QMIDevice.c
 @@ -90,7 +90,12 @@ POSSIBILITY OF SUCH DAMAGE.

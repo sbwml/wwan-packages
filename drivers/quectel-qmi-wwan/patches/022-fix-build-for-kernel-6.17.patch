@@ -1,0 +1,87 @@
+--- a/qmi_wwan_q.c
++++ b/qmi_wwan_q.c
+@@ -883,12 +883,51 @@ static struct rtnl_link_stats64 *rmnet_v
+ #endif
+ 
+ #if defined(QUECTEL_UL_DATA_AGG)
++#if LINUX_VERSION_CODE > KERNEL_VERSION(6, 17, 0)
++struct usbnet_work {
++	struct work_struct work;
++	sQmiWwanQmap *pQmapDev;
++};
++
++static void usbnet_bh_work(struct work_struct *work) {
++	struct usbnet_work *usbnet_work = container_of(work, struct usbnet_work, work);
++	sQmiWwanQmap *pQmapDev = usbnet_work->pQmapDev;
++	struct tasklet_struct *t = &pQmapDev->usbnet_bh;
++	bool use_callback = false;
++
++	use_callback = t->use_callback;
++	if (use_callback) {
++		t->callback(t);
++	}
++
++	if (!use_callback)
++		t->func(t->data);
++
++	if (!netif_queue_stopped(pQmapDev->mpNetDev->net)) {
++		qmap_wake_queue((sQmiWwanQmap *)pQmapDev);
++	}
++}
++
++static void usbnet_bh(unsigned long data) {
++	sQmiWwanQmap *pQmapDev = (sQmiWwanQmap *)data;
++	struct usbnet_work *usbnet_work;
++
++	usbnet_work = kmalloc(sizeof(struct usbnet_work), GFP_KERNEL);
++	if (!usbnet_work)
++		return;
++
++	INIT_WORK(&usbnet_work->work, usbnet_bh_work);
++	usbnet_work->pQmapDev = pQmapDev;
++
++	schedule_work(&usbnet_work->work);
++}
++#else
+ static void usbnet_bh(unsigned long data) {
+ 	sQmiWwanQmap *pQmapDev = (sQmiWwanQmap *)data;
+ 	struct tasklet_struct *t = &pQmapDev->usbnet_bh;
+ 	bool use_callback = false;
+ 
+-#if (LINUX_VERSION_CODE > KERNEL_VERSION( 5,8,0 )) //c955e329bb9d44fab75cf2116542fcc0de0473c5
++#if (LINUX_VERSION_CODE > KERNEL_VERSION(5, 8, 0)) // c955e329bb9d44fab75cf2116542fcc0de0473c5
+ 	use_callback = t->use_callback;
+ 	if (use_callback)
+ 		t->callback(&pQmapDev->mpNetDev->bh);
+@@ -901,6 +940,7 @@ static void usbnet_bh(unsigned long data
+ 		qmap_wake_queue((sQmiWwanQmap *)data);
+ 	}
+ }
++#endif
+ 
+ static void rmnet_usb_tx_wake_queue(unsigned long data) {
+ 	qmap_wake_queue((sQmiWwanQmap *)data);
+@@ -1360,8 +1400,12 @@ static int qmap_register_device(sQmiWwan
+ #endif
+ 	priv->agg_skb = NULL;
+ 	priv->agg_count = 0;
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 15, 0)
+ 	hrtimer_init(&priv->agg_hrtimer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+ 	priv->agg_hrtimer.function = rmnet_usb_tx_agg_timer_cb;
++#else
++    hrtimer_setup(&priv->agg_hrtimer, rmnet_usb_tx_agg_timer_cb, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
++#endif
+ 	INIT_WORK(&priv->agg_wq, rmnet_usb_tx_agg_work);
+ 	ktime_get_ts64(&priv->agg_time);
+ 	spin_lock_init(&priv->agg_lock);
+@@ -2255,8 +2299,10 @@ static int qmi_wwan_bind(struct usbnet *
+ 				}
+ 
+ 				if (pQmapDev->use_rmnet_usb && !one_card_mode) {
++#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 17, 0)
+ 					pQmapDev->usbnet_bh = dev->bh;
+ 					tasklet_init(&dev->bh, usbnet_bh, (unsigned long)pQmapDev);
++#endif
+ 				}
+ 			}
+ 		}

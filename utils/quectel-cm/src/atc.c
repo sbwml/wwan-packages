@@ -472,7 +472,6 @@ static int requestRegistrationState(UCHAR *pPSAttachedState) {
     int err;
     ATResponse *p_response = NULL;
     ATLine *p_cur;
-    int i;
     int cops_act = -1;
     int state = 0, lac = 0, cid = 0, act = 0;
     int commas;
@@ -493,7 +492,7 @@ AT< +COPS: 0,2,"46000",13
 AT< OK
 */
     retVal = 0;
-    for (i = 0, p_cur = p_response->p_intermediates; p_cur != NULL; p_cur = p_cur->p_next, i++) {
+    for (p_cur = p_response->p_intermediates; p_cur != NULL; p_cur = p_cur->p_next) {
         err = at_tok_scanf(p_cur->line, "%d%d%s%d", NULL, NULL, NULL, &cops_act);
         if (err != 4) goto error;
 
@@ -847,7 +846,6 @@ static int requestGetSignalInfo(void) {
     int retVal = -1;
     int err;
     ATResponse *p_response = NULL;
-    int i;
     ATLine *p_cur = NULL;
     char *rat = NULL;
     int cops_act = 0;
@@ -869,7 +867,7 @@ static int requestGetSignalInfo(void) {
     if (at_response_error(err, p_response))
         goto _error;
 
-    for (i = 0, p_cur = p_response->p_intermediates; p_cur != NULL; p_cur = p_cur->p_next, i++) {
+    for (p_cur = p_response->p_intermediates; p_cur != NULL; p_cur = p_cur->p_next) {
         char *type, *state;
 
         err = at_tok_scanf(p_cur->line, "%s%s", &type, &state);
